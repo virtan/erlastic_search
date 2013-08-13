@@ -64,15 +64,19 @@ do_request(#erls_params{host=Host, port=Port, timeout=Timeout},
                                           ; Status =:= 201 ->
             case hackney:body(Client) of
                 {ok, RespBody, _Client1} ->
+                    hackney:close(Client),
                     {ok, jsx:decode(RespBody)};
                 {error, _Reason} = Error ->
+                    hackney:close(Client),
                     Error
             end;
         {ok, Status, _Headers, Client} ->
             case hackney:body(Client) of
                 {error, _} = Error ->
+                    hackney:close(Client),
                     Error;
                 {ok, Binary, _} ->
+                    hackney:close(Client),
                     RespList = jsx:decode(Binary),
                     % could be {error, {404, <<"IndexMissingException[[hello] missing]">>}}
                     {error, {Status, proplists:get_value(<<"error">>, RespList)}}
