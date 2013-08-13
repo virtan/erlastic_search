@@ -68,8 +68,18 @@ do_request(#erls_params{host=Host, port=Port, timeout=Timeout},
                 {error, _Reason} = Error ->
                     Error
             end;
-        {ok, Status, _Headers, _Client} ->
-            {error, Status}
+        {ok, Status, _Headers, Client} ->
+            case hackney:body(Client) of
+                {error, _} = Error ->
+                    Error;
+                {ok, Binary, _} ->
+                    RespList = jsx:decode(Binary),
+                    % could be {error, {404, <<"IndexMissingException[[hello] missing]">>}}
+                    {error, {Status, proplists:get_value(<<"error">>, RespList)}}
+            end;
+        {error, _} = Error ->
+            % could be {error, econnrefused}
+            Error
     end.
 
 encode_query(Props) ->
