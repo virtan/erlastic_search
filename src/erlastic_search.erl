@@ -15,6 +15,9 @@
         ,index_doc_with_id/4
         ,index_doc_with_id/5
         ,index_doc_with_id_opts/6
+        ,create_mapping/3
+        ,create_mapping/4
+        ,create_mapping_opts/5
         ,bulk_index_docs/2
         ,search/2
         ,search/3
@@ -22,6 +25,8 @@
         ,search_limit/4
         ,get_doc/3
         ,get_doc/4
+        ,get_mapping/2
+        ,get_mapping/3
         ,flush_index/1
         ,flush_index/2
         ,flush_all/0
@@ -97,6 +102,26 @@ index_doc_with_id_opts(Params, Index, Type, Id, Doc, Opts) when is_list(Doc), is
 index_doc_with_id_opts(Params, Index, Type, Id, Doc, Opts) when is_binary(Doc), is_list(Opts) ->
     erls_resource:post(Params, filename:join([Index, Type, Id]), [], Opts, Doc, []).
 
+%%--------------------------------------------------------------------
+%% @doc
+%% Takes the index and type name and a Json mapping described in
+%% Erlang terms and passes to the default server.
+%% @end
+%%--------------------------------------------------------------------
+-spec create_mapping(binary(), binary(), list() | binary()) -> {ok, list()} | {error, any()}.
+create_mapping(Index, Type, Doc) ->
+    create_mapping_opts(#erls_params{}, Index, Type, Doc, []).
+
+-spec create_mapping(record(erls_params), binary(), binary(), list() | binary()) -> {ok, list()} | {error, any()}.
+create_mapping(Params, Index, Type, Doc) ->
+    create_mapping_opts(Params, Index, Type, Doc, []).
+
+-spec create_mapping_opts(record(erls_params), binary(), binary(), list() | binary(), list()) -> {ok, list()} | {error, any()}.
+create_mapping_opts(Params, Index, Type, Doc, Opts) when is_list(Doc), is_list(Opts) ->
+    create_mapping_opts(Params, Index, Type, jsx:encode(Doc), []);
+create_mapping_opts(Params, Index, Type, Doc, Opts) when is_binary(Doc), is_list(Opts) ->
+    erls_resource:post(Params, filename:join([Index, Type, <<"_mapping">>]), [], Opts, Doc, []).
+
 %% Documents is [ {Index, Type, Id, Json}, ... ]
 -spec bulk_index_docs(record(erls_params), list()) -> {ok, list()} | {error, any()}.
 bulk_index_docs(Params, IndexTypeIdJsonTuples) ->
@@ -167,6 +192,28 @@ get_doc(Index, Type, Id) ->
 -spec get_doc(record(erls_params), binary(), binary(), binary()) -> {ok, list()} | {error, any()}.
 get_doc(Params, Index, Type, Id) ->
     erls_resource:get(Params, filename:join([Index, Type, Id]), [], [], []).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Takes the index and type name and requests mapping
+%% from the default Elastic Search server on localhost:9100
+%% @end
+%%--------------------------------------------------------------------
+-spec get_mapping(binary(), binary()) -> {ok, list()} | {error, any()}.
+get_mapping(Index, Type) ->
+    get_mapping(#erls_params{}, Index, Type).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Takes the index and type name and requests mapping
+%% from the Elastic Search server specified in Params.
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+-spec get_mapping(record(erls_params), binary(), binary()) -> {ok, list()} | {error, any()}.
+get_mapping(Params, Index, Type) ->
+    erls_resource:get(Params, filename:join([Index, Type, <<"_mapping">>]), [], [], []).
 
 flush_index(Index) ->
     flush_index(#erls_params{}, Index).
